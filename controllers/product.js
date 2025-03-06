@@ -2,8 +2,10 @@ import { productModel } from "../models/product.js";
 
 //שליפת כל המוצרים
 export const getAllProducts = async (req, res) => {
+    let l = req.query.limit || 10;
+    let page = req.query.page || 1;
     try {
-        let data = await productModel.find();
+        let data = await productModel.find().skip((page - 1) * l).limit(l)
         res.json(data);
     }
     catch (err) {
@@ -12,6 +14,22 @@ export const getAllProducts = async (req, res) => {
 
     }
 }
+
+export const getTotalCount = async (req, res) => {
+    let l = parseInt(req.query.limit) || 10; // ברירת מחדל 10 מוצרים בעמוד
+    try {
+        let totalCount = await productModel.countDocuments();
+        res.json({
+            totalCount, // מספר כולל של מוצרים
+            pages: Math.ceil(totalCount / l), // מספר עמודים נכון
+            limit: l
+        });
+    }
+    catch (err) {
+        console.log(err);
+        res.status(400).json({ title: "cannot get total product count", message: err.message });
+    }
+};
 //שליפת מוצר לפי ID 
 export const getById = async (req, res) => {
     let { id } = req.params;
