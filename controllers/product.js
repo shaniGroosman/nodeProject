@@ -1,4 +1,5 @@
 import { productModel } from "../models/product.js";
+import jwt from 'jsonwebtoken';
 
 //שליפת כל המוצרים
 export const getAllProducts = async (req, res) => {
@@ -45,45 +46,64 @@ export const getById = async (req, res) => {
 
 //הוספת מוצר
 export const addProduct = async (req, res) => {
-    let { body } = req;
-    if (!body.price || !body.name)
-        return res.status(404).json({ title: "cannot add product", message: "name , price are require" })
+    let { body } = req
+
+    if (!body.name || !body.price)
+        return res.status(400).json({ title: "can't add new course", massege: "you are missing required fields" })
+
+    if (body.price <= 0)
+        return res.status(409).json({ title: "price error", massege: "price too low" })
+
     try {
-        let newProduct = new productModel(body);
-        await newProduct.save();
-        res.json(newProduct);
+        let newData = new productModel(body)
+        let data = await newData.save()
+        res.json(data)
     }
+
     catch (err) {
         console.log(err)
-        res.status(400).json({ title: "cannot add this product", message: err.message })
+        res.status(400).json({ title: "can't add new product", massege: err.massege })
     }
 }
 
+
 //מחיקת מוצר לפי ID
 export const deleteById = async (req, res) => {
-    let { id } = req.params;
+    let { id } = req.params
     try {
-        let data = await productModel.findByIdAndDelete(id);
+        let data = await productModel.findByIdAndDelete(id)
         if (!data)
-            return res.status(404).json({ title: "cannot delete by id", message: "product with such id not found" });
-        res.json(data);
-    } catch (err) {
-        console.log(err);
-        res.status(400).json({ title: "cannot delete", message: err.message });
+            return res.status(404).json({ title: "No such id found", massege: err.massege })
+
+        res.json(data)
+
+    }
+    catch (err) {
+        console.log(err)
+        res.status(400).json({ title: "can't delete this product", massege: err.massege })
     }
 };
 //עדכון מוצר 
 export const update = async (req, res) => {
-    let { id } = req.params;
-    let body = req.body;
-    if (!body.price || !body.name)
-        return res.status(404).json({ title: "cannot update product", message: "name , price are require" })
+    let { id } = req.params
+    let { body } = req
+
+    if (!body.name)
+        return res.status(400).json({ title: "can't update this product", massege: "You must change the describe field" })
+
+    if (body.name.length < 2)
+        return res.status(409).json({ title: "name error", massege: "length of name smaller than 2" })
+
+
     try {
-        let data = await productModel.findByIdAndUpdate(id, body, { new: true });
-        if (!data) return res.status(404).json({ title: "cannot update by id", message: "product with such id not found" });
-        res.json(data);
-    } catch (err) {
+        let data = await productModel.findByIdAndUpdate(id, req.body, { new: true })
+        if (!data)
+            return res.status(404).json({ title: "No such id found", massege: "not have such id" })
+        res.json(data)
+
+    }
+    catch (err) {
         console.log(err)
-        res.status(400).json({ title: "cannot update", message: err.message });
+        res.status(400).json({ title: "can't update this product", massege: err.massege })
     }
 }

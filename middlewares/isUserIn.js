@@ -28,7 +28,7 @@ export function isUserManager(req, res, next) {
 
         let result = verify(authorization, process.env.SECRET_KEY);
         req.u = result;
-        if (result.role != "MANAGER")
+        if (result.role != "manager")
             return res.status(403).json({ title: "אין לך רשות לבצע פעולה זו", message: "נדרשת השראת מנהל...." + err.message })
         return next()
     }

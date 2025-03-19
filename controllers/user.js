@@ -1,6 +1,6 @@
 import bcrypt, { hash } from 'bcrypt';
-
-import { userModel } from "../models/user.js";
+import Joi from "joi";
+import { userModel,validateUser } from "../models/user.js";
 import { generateToken } from "../utils/generateToken.js";
 
 // שליפת כל המשתמשים 
@@ -32,31 +32,27 @@ export const getById = async (req, res) => {
 export const addUser = async (req, res) => {
     let { body } = req;
 
-    // בדיקת חובה
-    if (!body.password || !body.email) {
-        return res.status(400).json({ title: "cannot add user", message: "password and email are required" });
-    }
-
-    // בדיקת חוזק סיסמה
-    if (!(body.password.length >= 6 && (body.password.match(/\d/g) || []).length >= 4 && (body.password.match(/[a-zA-Z]/g) || []).length >= 2)) {
-        return res.status(400).json({ title: "invalid password", message: "password must be at least 6 characters long, contain at least 4 numbers and 2 letters" });
+    // 🛠 **בדיקת הנתונים עם Joi**
+    const { error } = validateUser(body);
+    if (error) {
+        return res.status(400).json({ title: "Validation Error", message: error.details[0].message });
     }
 
     try {
-        // בדיקת קיום משתמש עם אותו אימייל
+        // 🔍 **בדיקה אם המשתמש כבר קיים**
         let existingUser = await userModel.findOne({ email: body.email });
 
         if (existingUser) {
-            return res.status(400).json({ title: "email already exists", message: "A user with this email already exists" });
+            return res.status(400).json({ title: "Email already exists", message: "A user with this email already exists" });
         }
 
-        // **הצפנת הסיסמה לפני יצירת המשתמש**
+        // 🔒 **הצפנת הסיסמה לפני יצירת המשתמש**
         const saltRounds = 10;
         console.log("Encrypting password:", body.password);
         const hashedPassword = await bcrypt.hash(body.password, saltRounds);
         console.log("Encrypted password:", hashedPassword);
 
-        // יצירת משתמש חדש עם הסיסמה המוצפנת
+        // 🎉 **יצירת משתמש חדש ושמירה במסד הנתונים**
         let newUser = new userModel({ ...body, password: hashedPassword });
 
         await newUser.save();
@@ -64,7 +60,7 @@ export const addUser = async (req, res) => {
         res.json({ message: "User created successfully", user: newUser });
     } catch (err) {
         console.log(err);
-        res.status(400).json({ title: "cannot add this user", message: err.message });
+        res.status(400).json({ title: "Cannot add this user", message: err.message });
     }
 };
 
@@ -144,8 +140,11 @@ export async function getUserByUsernamePassword_Login(req, res) {
             return res.status(401).json({ title: "Incorrect password", message: "Wrong password" });
         }
 
+        console.log("🛠️ User before token generation:", user);
+        console.log("🔍 User role before token:", user.role);
+
         // יצירת טוקן
-        let token = generateToken({ id: user._id, userName: user.userName, role: "USER" });
+        let token = generateToken({ id: user._id, userName: user.userName, role: user.role });
 
         // שליחת מידע ללקוח בלי הסיסמה
         const { password: _, ...userData } = user.toObject();
