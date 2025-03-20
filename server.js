@@ -21,8 +21,8 @@ app.use(express.json())
 app.use("/api/order", orderRouter)
 app.use("/api/user", userRouter)
 app.use("/api/product", productRouter)
-let port = process.env.PORT;
-app.use((req, res, next, err) => {
+let port = process.env.PORT||4040;
+app.use((err, req, res, next) => {
     //זה שהוא מקבל 4 פרמטרים זה מה שגורם לו להיות לחכידת שגיאות
     res.status(500).json({ title: "שגיאה בשרת", message: err.message })
 })
