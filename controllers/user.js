@@ -2,6 +2,10 @@ import bcrypt, { hash } from 'bcrypt';
 import Joi from "joi";
 import { userModel,validateUser } from "../models/user.js";
 import { generateToken } from "../utils/generateToken.js";
+import { OAuth2Client } from "google-auth-library";
+import jwt from "jsonwebtoken";
+
+
 
 // שליפת כל המשתמשים 
 export const getAllUser = async (req, res) => {
@@ -158,3 +162,32 @@ export async function getUserByUsernamePassword_Login(req, res) {
 }
 
 
+const client = new OAuth2Client("473040482684-qbvic6169pftm437h4rt4aoiq89lvrnc.apps.googleusercontent.com");
+
+export async function googleAuth(req, res) {
+    try {
+        const { token } = req.body;
+        console.log("📢 Token received from frontend:", token); // 🛠️ הדפסה לבדיקה
+
+        const ticket = await client.verifyIdToken({
+            idToken: token,
+            audience: "473040482684-qbvic6169pftm437h4rt4aoiq89lvrnc.apps.googleusercontent.com"
+        });
+
+        console.log("✅ Token verified, payload:", ticket.getPayload()); // 🛠️ הדפסה לבדיקה
+
+        const { email, name, picture } = ticket.getPayload();
+        let user = await userModel.findOne({ email });
+
+        if (!user) {
+            return res.status(401).json({ message: "משתמש לא קיים. אנא צור חשבון." });
+        }
+
+        let userToken = generateToken({ id: user._id, userName: user.userName, role: user.role });
+
+        res.json({ ...user.toObject(), token: userToken });
+    } catch (err) {
+        console.error("❌ Error in Google authentication:", err); // 🛠️ הדפסה לבדיקה
+        res.status(500).json({ message: "Authentication failed" });
+    }
+}
