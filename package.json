@@ -10,5 +10,9 @@
     "mongoose": "^8.9.2",
     "nodemailer": "^6.10.0"
   },
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  }
+
 }
